@@ -75,13 +75,13 @@ for grade in grades:
                 # csv format
                 # model, grade, text #, prompt #, start text grade, target grade, actual grade
 
-                output_prompt = open("prompt_output.csv", "a")
+                output_prompt = open("./output/{model}_prompt_output.csv".format(model=model), "a")
 
                 prompt_writer = csv.writer(output_prompt)
 
                 prompt_writer.writerow([output])
 
-                output_csv = open("out.csv", "a")
+                output_csv = open("./output/{model}_out.csv".format(model=model), "a")
 
                 writer = csv.writer(output_csv)
 
