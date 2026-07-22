@@ -1,0 +1,1 @@
+This repository contains files and data for an investigation into the capabilities of various LLMs at adjusting text to different levels of readability. The calculator extracts texts from the folder fkgl-texts which contains texts at a particular FKGL level (as indicated by the number of the csv file). Texts are ±0.5 the csv grade.
