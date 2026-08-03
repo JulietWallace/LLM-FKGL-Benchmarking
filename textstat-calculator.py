@@ -72,7 +72,7 @@ for grade in grades:
 
                     meta_prompts = open("output/timed/meta_prompts/{model}_meta_prompts.csv".format(model=model), "a")
                     prompts_writer = csv.writer(meta_prompts)
-                    prompt_writer.writerow([grade, text_num, target_grade, new_prompt, f"{prompt_time:.3f}"])
+                    prompts_writer.writerow([grade, text_num, target_grade, new_prompt, f"{prompt_time:.3f}"])
 
                 else:
 
