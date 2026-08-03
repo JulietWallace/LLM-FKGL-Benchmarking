@@ -1,9 +1,10 @@
 from ollama import chat
 from ollama import ChatResponse
 import textstat
-from textstat import flesch_kincaid_grade, gunning_fog, smog_index, text_standard, automated_readability_index, coleman_liau_index
+from textstat import flesch_kincaid_grade
 import pandas as pd
 import csv
+import time
 
 #Workflow: only look at every second grade (to cut down on testing needed). Open file of texts for that level. Get first 3 rows of each grade. 
 #What to record: start level, end level, distance from start to desired, distance from end to desired, distance from start to end
@@ -39,6 +40,7 @@ for grade in grades:
             for prompt_index, prompt in enumerate(prompts):
 
                 if prompt_index == 4: #this is the meta-prompt
+                    start = time.perf_counter()
                     response: ChatResponse = chat(model=model, messages=[
                         {
                             'role': 'user',
@@ -47,6 +49,10 @@ for grade in grades:
                     ])
                         
                     new_prompt = response.message.content
+
+                    end_prompt_time = time.perf_counter()
+
+                    second_start = time.perf_counter()
                         
                     response: ChatResponse = chat(model=model, messages=[
                             {
@@ -55,11 +61,22 @@ for grade in grades:
                             },
                         ])
 
-
                     output = response.message.content
+                    end = time.perf_counter()
+
+                    prompt_time = end_prompt_time - start
+
+                    output_time = end - second_start
+
+
+
+                    meta_prompts = open("output/timed/meta_prompts/{model}_meta_prompts.csv".format(model=model), "a")
+                    prompts_writer = csv.writer(meta_prompts)
+                    prompt_writer.writerow([grade, text_num, target_grade, new_prompt, f"{prompt_time:.3f}"])
 
                 else:
-                    
+
+                    start = time.perf_counter() 
                     response: ChatResponse = chat(model=model, messages=[
                             {
                                 'role': 'user',
@@ -69,23 +86,26 @@ for grade in grades:
 
 
                     output = response.message.content
+                    end = time.perf_counter()
+
+                    output_time = end - start
 
                 output_fkgl = textstat.flesch_kincaid_grade(output)
                 
                 # csv format
                 # model, grade, text #, prompt #, start text grade, target grade, actual grade
 
-                output_prompt = open("./output/{model}_prompt_output.csv".format(model=model), "a")
+                output_prompt = open("./output/timed/{model}_prompt_output.csv".format(model=model), "a")
 
                 prompt_writer = csv.writer(output_prompt)
 
-                prompt_writer.writerow([output])
+                prompt_writer.writerow([model, grade, text_num, target_grade, prompt_index, output])
 
-                output_csv = open("./output/{model}_out.csv".format(model=model), "a")
+                output_csv = open("./output/timed/{model}_out.csv".format(model=model), "a")
 
                 writer = csv.writer(output_csv)
 
-                writer.writerow([model, grade, text_num, prompt_index, f"{texts_fkgl[text_num]:.2f}", target_grade, f"{output_fkgl:.2f}"])
+                writer.writerow([model, grade, text_num, prompt_index, f"{texts_fkgl[text_num]:.2f}", target_grade, f"{output_fkgl:.2f}", f"{output_time:.3f}"])
 
 
 
