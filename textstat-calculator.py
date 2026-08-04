@@ -11,10 +11,22 @@ import time
 
 grades = [0, 2, 4, 6, 8, 10, 12]
 
+first_half = [0, 2, 4, 6]
+
+second_half = [8, 10, 12]
+
 model = input("What model would you like to use?")
 
+half = input("Which half?")
 
-for grade in grades:
+grades_half = []
+
+if half == "first":
+    grades_half = first_half
+else:
+    grades_half = second_half
+
+for grade in grades_half:
     lines = pd.read_csv("fkgl-texts/{grade}.csv".format(grade = grade)) #open the csv with the texts for that level
     top_3 = lines.head(3) #get first 3 texts
     texts = top_3.iloc[:, 0].to_list() #transform to list
