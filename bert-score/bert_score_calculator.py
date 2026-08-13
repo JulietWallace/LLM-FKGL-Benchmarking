@@ -9,7 +9,7 @@ import torch
 
 #first get the data i want to use
 
-original_texts = pd.read_csv('texts_concat.csv')
+original_texts = pd.read_csv('texts_concat.csv', header=None)
 
 original_texts.columns = ['grade', 'text_num', 'text']
 
