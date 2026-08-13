@@ -1,0 +1,137 @@
+from ollama import chat
+from ollama import ChatResponse
+import textstat
+from textstat import flesch_kincaid_grade
+from textstat import flesch_kincaid_grade
+import pandas as pd
+import csv
+import time
+import time
+
+#Workflow: only look at every second grade (to cut down on testing needed). Open file of texts for that level. Get first 3 rows of each grade. 
+#What to record: start level, end level, distance from start to desired, distance from end to desired, distance from start to end
+
+grades = [0, 2, 4, 6, 8, 10, 12]
+
+first_half = [0, 2, 4, 6]
+
+second_half = [8, 10, 12]
+
+model = input("What model would you like to use?")
+
+half = input("Which half?")
+
+grades_half = []
+
+if half == "first":
+    grades_half = first_half
+else:
+    grades_half = second_half
+
+for grade in grades_half:
+    lines = pd.read_csv("fkgl-texts/short/{grade}.csv".format(grade = grade)) #open the csv with the texts for that level
+    top_3 = lines.head(3) #get first 3 texts
+    texts = top_3.iloc[:, 0].to_list() #transform to list
+    texts_fkgl = top_3.iloc[:, 1].to_list() #transform to list
+
+    for text_num, text in enumerate(texts):
+        for target_grade in grades:
+            examples = pd.read_csv("set-up/examples.csv")
+            example = examples[target_grade, 0]
+
+
+            prompts = [
+                    'Adjust the following passage for Grade {x} readers. Output ONLY the rewritten text without any additional explanation: '.format(x = target_grade), 
+                    'Adjust the following passage for Grade {x}  readers on the Flesch-Kincaid Grade scale. Output ONLY the rewritten text without any additional explanation: '.format(x = target_grade), 
+                    'Adjust the following passage for Grade {x}  readers on the Flesch-Kincaid Grade scale. The Flesch-Kincaid Grade scale looks at total words,  total sentences, and total syllables in a text. Output ONLY the rewritten text without any additional explanation: '.format(x = target_grade),
+                    'Provide a prompt to adjust the following passage for  Grade {x} readers. Output ONLY the prompt without any additional explanation. The prompt should specify that only the rewritten text should be output. Do not include any introduction, explanation, or other text. This is the passage: '.format(x = target_grade),
+                    'You are a helpful teacher helping a class at Flesch-Kincaid Grade scale {x}. Adjust the following passage to Flesch-Kincaid Grade scale {x} to help your class. Output ONLY the rewritten text without any additional explanation: '.format(x = target_grade),
+                    'Adjust the following passage for Grade {x}  readers in the Flesch-Kincaid Grade scale. Here is an example of text at this level: '.format(x = target_grade) + example + " Output ONLY the rewritten text without any additional explanation This is the passage to adjust: ",
+                    'Adjust the following passage for Grade {x}  readers in the Flesch-Kincaid Grade scale. This is the formula for Flesch-Kincaid: Reading grade level = 0.39 (words/sentence) + 11.8 (syllables/word) -15.59. Use this to guide your adjustment. Output ONLY the rewritten text without any additional explanation. This is the passage: '.format(x = target_grade)
+                ]
+
+            for prompt_index, prompt in enumerate(prompts):
+
+                if prompt_index == 4: #this is the meta-prompt
+                    response: ChatResponse = chat(model=model, messages=[
+                        {
+                            'role': 'user',
+                            'content': prompt + text,
+                        },
+                    ])
+                        
+                    new_prompt = response.message.content
+                    output = response.message.content
+                    total_duration = response.total_duration
+                    load_duration = response.load_duration
+                    prompt_eval_count = response.prompt_eval_count
+                    prompt_eval_duration = response.promptl_eval_duration
+                    eval_count = response.eval_count
+                    eval_duration = response.eval_duration
+                        
+                    response: ChatResponse = chat(model=model, messages=[
+                            {
+                                'role': 'user',
+                                'content': new_prompt,
+                            },
+                        ])
+
+                    output = response.message.content
+                    total_duration = response.total_duration
+                    load_duration = response.load_duration
+                    prompt_eval_count = response.prompt_eval_count
+                    prompt_eval_duration = response.promptl_eval_duration
+                    eval_count = response.eval_count
+                    eval_duration = response.eval_duration
+                                        
+
+                    meta_prompts = open("output/timed/meta_prompts/{model}_meta_prompts.csv".format(model=model), "a")
+                    prompts_writer = csv.writer(meta_prompts)
+                    prompt_writer.writerow([grade, text_num, target_grade, new_prompt])
+
+                    meta_prompts_performance = open("output/timed/meta_prompts/{model}_meta_prompts_performance.csv".format(model=model), "a")
+                    prompts_writer_performance = csv.writer(meta_prompts_performance)
+                    prompt_writer.writerow([grade, text_num, target_grade, total_duration, load_duration, prompt_eval_count, prompt_eval_duration, eval_count, eval_duration])
+
+                else:
+                    response: ChatResponse = chat(model=model, messages=[
+                            {
+                                'role': 'user',
+                                'content': prompt + text,
+                            },
+                        ])
+
+
+                    output = response.message.content
+                    total_duration = response.total_duration
+                    load_duration = response.load_duration
+                    prompt_eval_count = response.prompt_eval_count
+                    prompt_eval_duration = response.prompt_eval_duration
+                    eval_count = response.eval_count
+                    eval_duration = response.eval_duration
+
+                output_fkgl = textstat.flesch_kincaid_grade(output)
+                
+                # csv format
+                # model, grade, text #, prompt #, start text grade, target grade, actual grade
+
+                output_prompt = open("./output/performance/{model}_prompt_output.csv".format(model=model), "a")
+
+                prompt_writer = csv.writer(output_prompt)
+
+                prompt_writer.writerow([model, grade, text_num, target_grade, prompt_index, output])
+
+                output_csv = open("./output/performance/{model}_out.csv".format(model=model), "a")
+
+                writer = csv.writer(output_csv)
+
+                writer.writerow([model, grade, text_num, prompt_index, f"{texts_fkgl[text_num]:.2f}", target_grade, f"{output_fkgl:.2f}"])
+
+                performance = open("./output/performance/{model}_performance.csv".format(model=model), "a")
+                performance_writer = csv.writer(performance)
+
+                performance_writer.writerow([model, grade, text_num, prompt_index, target_grade, total_duration, load_duration, prompt_eval_count, prompt_eval_duration, eval_count, eval_duration])
+
+
+
+
